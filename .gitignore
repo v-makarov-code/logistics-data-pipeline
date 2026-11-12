@@ -1,0 +1,31 @@
+.venv/
+.vscode/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+docs/
+attachments/
+ml/artifacts/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+Thumbs.db
+
+# Local review notes and optional standalone checks; keep on disk.
+tests/ACCEPTANCE.md
+sql/PERFORMANCE.md
+sql/07_verify_project.sql
+tests/route_card_assertions.sql
+
+# Extended tests retained locally; publish the compact 16-check suite.
+tests/test_etl_integration.py
+tests/test_ml_features.py
+tests/test_ml_integration.py
+tests/test_ml_training.py
+tests/test_ml_publish.py

@@ -1,0 +1,56 @@
+{
+  "as_of_date": "2026-10-26",
+  "recorded_at": "2026-11-12T12:49:59.915937+00:00",
+  "model_version": "2ff89f0b8b6d7192",
+  "source_model_run_id": "b5796277-9601-4058-a251-d3b43f8dc08d",
+  "source_report_sha256": "575d3fd64ab9c90dd4844465a49c499265cee12a219fedf8e3a508fb3ca28f36",
+  "train_rows": 24226,
+  "fit_rows": 18703,
+  "validation_rows": 5523,
+  "test_rows": 12808,
+  "future_rows": 4891,
+  "selected_iterations": 313,
+  "iterations_evaluated": 363,
+  "training_config": {
+    "iterations": 1000,
+    "depth": 6,
+    "learning_rate": 0.05,
+    "random_seed": 42,
+    "thread_count": 4,
+    "validation_days": 14,
+    "early_stopping_rounds": 50
+  },
+  "versions": {
+    "python": "3.12.16",
+    "catboost": "1.2.10",
+    "numpy": "2.5.4",
+    "pandas": "3.1.1"
+  },
+  "metrics": {
+    "selection_validation": {
+      "rows": 5523,
+      "rmse_rub": 57407.34217963114,
+      "mae_rub": 27545.63090876686,
+      "mape_pct": 15.193888601028194,
+      "r2": 0.9120113980307112
+    },
+    "test": {
+      "rows": 12808,
+      "rmse_rub": 54145.13919704527,
+      "mae_rub": 28166.70982707125,
+      "mape_pct": 15.559428826134141,
+      "r2": 0.9198944327959282
+    },
+    "test_baseline_train_mean": {
+      "rows": 12808,
+      "rmse_rub": 191457.99314335093,
+      "mae_rub": 131778.84848392446,
+      "mape_pct": 142.59798413494798,
+      "r2": -0.0015917888172636285
+    },
+    "baseline_price_rub": 187418.66468133408
+  },
+  "plot_seed": 42,
+  "scatter_points": 6000,
+  "feature_importance_type": "PredictionValuesChange"
+}

@@ -1,0 +1,120 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-deals_bigdata}
+      POSTGRES_USER: ${POSTGRES_USER:-de_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_de_password}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./sql/synthetic.sql:/docker-entrypoint-initdb.d/02-synthetic.sql:ro
+      - ./sql/03_core_and_quarantine.sql:/docker-entrypoint-initdb.d/03-core-and-quarantine.sql:ro
+      - ./sql/04_mart_route_card.sql:/docker-entrypoint-initdb.d/04-mart-route-card.sql:ro
+      - ./sql/06_mart_ml_price_predictions.sql:/docker-entrypoint-initdb.d/06-ml-price-predictions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10m
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-local_admin_password}
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    healthcheck:
+      test: ["CMD", "/venv/bin/python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1/misc/ping', timeout=5).close()"]
+      interval: 5s
+      timeout: 7s
+      retries: 24
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  etl:
+    build: .
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-deals_bigdata}
+      PGUSER: ${POSTGRES_USER:-de_user}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-local_de_password}
+    command:
+      - --start-date
+      - ${ETL_START_DATE:-2023-01-01}
+      - --end-date
+      - ${ETL_END_DATE:-2028-01-01}
+      - --as-of-date
+      - ${MART_AS_OF_DATE:-2026-10-26}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ml:
+    build: .
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-deals_bigdata}
+      PGUSER: ${POSTGRES_USER:-de_user}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-local_de_password}
+    entrypoint: ["uv", "run", "--no-sync", "python", "-m", "ml.pipeline"]
+    command:
+      - --as-of-date
+      - ${MART_AS_OF_DATE:-2026-10-26}
+      - --output-dir
+      - /app/ml/artifacts
+      - --thread-count
+      - ${ML_THREAD_COUNT:-4}
+      - --random-seed
+      - ${ML_RANDOM_SEED:-42}
+    volumes:
+      - ./ml/artifacts:/app/ml/artifacts
+    depends_on:
+      etl:
+        condition: service_completed_successfully
+
+  ml-features:
+    build: .
+    profiles: ["features"]
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-deals_bigdata}
+      PGUSER: ${POSTGRES_USER:-de_user}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-local_de_password}
+    entrypoint: ["uv", "run", "--no-sync", "python", "-m", "ml.prepare_dataset"]
+    command: ["--as-of-date", "${MART_AS_OF_DATE:-2026-10-26}", "--output-dir", "/app/ml/artifacts"]
+    volumes:
+      - ./ml/artifacts:/app/ml/artifacts
+    depends_on:
+      etl:
+        condition: service_completed_successfully
+
+  tests:
+    build: .
+    profiles: ["test"]
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-deals_bigdata}
+      PGUSER: ${POSTGRES_USER:-de_user}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-local_de_password}
+    entrypoint: ["uv", "run", "--no-sync", "python", "-m", "tests.run_checks"]
+    command: ["--integration"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  pgadmin_data:
