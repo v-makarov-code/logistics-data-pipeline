@@ -64,17 +64,10 @@ Get-Content -Raw -Encoding UTF8 sql/05_refresh_route_card.sql | docker compose e
 
 ## Проверки
 
-Рекомендуемый запуск всех проверок без ручной подготовки БД:
+Запуск всех проверок через Docker Compose:
 
 ```bash
 docker compose run --rm --build tests
 ```
 
-Runner создаёт и удаляет свои временные БД. Ручной запуск отдельной группы описан ниже.
-
-Интеграционные тесты требуют **отдельную одноразовую** БД с именем `de_etl_test_*`, в которой выполнены `sql/schema.sql`, `sql/03_core_and_quarantine.sql` и `sql/04_mart_route_card.sql`. Тесты удаляют данные в таблицах источника, Core, карантина и Mart этой БД. Задайте стандартные `PG*` для неё и запустите:
-
-```powershell
-$env:RUN_ETL_INTEGRATION = '1'
-uv run python -m unittest tests.test_etl.PipelineIntegrationTests -v
-```
+Runner автоматически создаёт отдельные временные БД, подготавливает схемы и тестовые данные, запускает проверки и удаляет созданные БД. Рабочие таблицы не очищаются; вручную задавать переменные окружения для включения тестов не требуется.
